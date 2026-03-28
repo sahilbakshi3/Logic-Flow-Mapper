@@ -1,4 +1,5 @@
 import { useStore } from "../store/useStore";
+import { exportGraphToJSON } from "../utils/graph";
 
 export function Sidebar() {
   const nodes = useStore((s) => s.nodes);
@@ -21,6 +22,13 @@ export function Sidebar() {
 
   const isRunning = simulation.status === "running";
   const isComplete = simulation.status === "complete";
+
+  const handleExport = () => {
+    const json = exportGraphToJSON(nodes, "root");
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  };
 
   return (
     <aside className="sidebar">
@@ -179,6 +187,14 @@ export function Sidebar() {
           ))}
         </div>
       </div>
+
+      <button
+        className="btn"
+        style={{ width: "100%", justifyContent: "center", marginBottom: 6 }}
+        onClick={handleExport}
+      >
+        ↓ export json
+      </button>
 
       {/* ── Reset ── */}
       <div className="sidebar-section">

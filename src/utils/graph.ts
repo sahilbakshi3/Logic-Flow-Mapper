@@ -133,3 +133,23 @@ export function computeDepths(
 
   return depths;
 }
+
+export function exportGraphToJSON(
+  nodes: Record<NodeId, LogicNode>,
+  rootId: NodeId,
+): string {
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    rootId,
+    nodeCount: Object.keys(nodes).length,
+    nodes: Object.values(nodes).map((node) => ({
+      id: node.id,
+      condition: node.condition,
+      depth: node.depth,
+      parentId: node.parentId,
+      childIds: node.childIds,
+      linkedToId: node.linkedToId,
+    })),
+  };
+  return JSON.stringify(exportData, null, 2);
+}
