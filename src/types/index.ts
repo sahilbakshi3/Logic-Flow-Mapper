@@ -26,7 +26,7 @@ export interface EdgeInfo {
 export type SimulationStatus = "idle" | "running" | "complete" | "blocked";
 
 export interface SimulationState {
-  status: SimulationState;
+  status: SimulationStatus;
   visitedPath: NodeId[];
   currentNodeId: NodeId | null;
 }
