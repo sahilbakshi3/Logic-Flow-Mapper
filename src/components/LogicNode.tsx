@@ -1,4 +1,13 @@
 import { memo, useCallback, useRef } from "react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCheck,
+  Link2,
+  Link2Off,
+  Plus,
+  X,
+} from "lucide-react";
 import type { NodeId } from "../types";
 import { useStore } from "../store/useStore";
 
@@ -29,7 +38,6 @@ export const LogicNodeCard = memo(function LogicNodeCard({
   const handleCardClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-
       if (linkingFromId && linkingFromId !== nodeId) {
         linkNode(linkingFromId, nodeId);
         return;
@@ -40,9 +48,8 @@ export const LogicNodeCard = memo(function LogicNodeCard({
   );
 
   const handleConditionChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateCondition(nodeId, e.target.value);
-    },
+    (e: React.ChangeEvent<HTMLInputElement>) =>
+      updateCondition(nodeId, e.target.value),
     [nodeId, updateCondition],
   );
 
@@ -86,6 +93,7 @@ export const LogicNodeCard = memo(function LogicNodeCard({
   const isLinkingFrom = linkingFromId === nodeId;
   const isLinkingTarget = linkingFromId !== null && linkingFromId !== nodeId;
   const linkedNode = node.linkedToId ? nodes[node.linkedToId] : null;
+  const shortId = nodeId === "root" ? "root" : nodeId.slice(-8);
 
   const cardClasses = [
     "node-card",
@@ -99,43 +107,35 @@ export const LogicNodeCard = memo(function LogicNodeCard({
     .filter(Boolean)
     .join(" ");
 
-  const shortId = nodeId === "root" ? "root" : nodeId.slice(-8);
-
   return (
     <div className={cardClasses} onClick={handleCardClick}>
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="node-header">
         <span className={`node-type-badge ${isRoot ? "root" : "child"}`}>
-          {isRoot ? "ROOT" : `IF`}
+          {isRoot ? "ROOT" : "IF"}
         </span>
         <span className="node-id">{shortId}</span>
 
         <div className="node-status-icons">
           {node.hasCycle && (
-            <div className="node-status-icon cycle" title="Cycle detected">
-              ⚠
+            <div className="node-status-icon cycle" title="Part of a cycle">
+              <AlertTriangle size={9} />
             </div>
           )}
           {node.linkedToId && (
-            <div
-              className="node-status-icon linked"
-              title={`Linked → ${node.linkedToId}`}
-            >
-              ⇢
+            <div className="node-status-icon linked" title="Has outgoing link">
+              <Link2 size={9} />
             </div>
           )}
           {isVisited && simulation.status !== "idle" && (
-            <div
-              className="node-status-icon visited"
-              title="Visited during simulation"
-            >
-              ✓
+            <div className="node-status-icon visited" title="Visited">
+              <CheckCheck size={9} />
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Body ── */}
+      {/* Body */}
       <div className="node-body" onClick={(e) => e.stopPropagation()}>
         <input
           ref={inputRef}
@@ -143,52 +143,56 @@ export const LogicNodeCard = memo(function LogicNodeCard({
           type="text"
           value={node.condition}
           onChange={handleConditionChange}
-          placeholder={
-            isRoot ? "Entry condition..." : "If condition is true..."
-          }
+          placeholder={isRoot ? "entry condition..." : "if this is true..."}
           onClick={(e) => e.stopPropagation()}
         />
 
-        {/* Linked node indicator */}
         {linkedNode && (
           <div
             className={`node-link-badge ${node.hasCycle ? "is-cycle" : ""}`}
             onClick={handleRemoveLink}
             title="Click to remove link"
           >
-            {node.hasCycle ? "⚠ " : "⇢ "}
-            {linkedNode.condition || <em>unnamed</em>}
-            <span style={{ opacity: 0.5 }}> ✕</span>
+            {node.hasCycle ? (
+              <AlertTriangle size={9} />
+            ) : (
+              <ArrowRight size={9} />
+            )}
+            {linkedNode.condition || "unnamed"}
+            <Link2Off size={9} style={{ opacity: 0.5 }} />
           </div>
         )}
       </div>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <div className="node-footer" onClick={(e) => e.stopPropagation()}>
         <button
           className="btn btn-ghost btn-sm"
           onClick={handleAddChild}
           data-tooltip="Add child node"
+          style={{ gap: 4 }}
         >
-          + Child
+          <Plus size={11} /> Child
         </button>
 
         <button
           className={`btn btn-sm ${isLinkingFrom ? "btn-amber" : "btn-ghost"}`}
           onClick={handleLinkClick}
           data-tooltip="Link to another node"
+          style={{ gap: 4 }}
         >
-          {isLinkingFrom ? "⇢ Linking..." : "⇢ Link"}
+          <Link2 size={11} />
+          {isLinkingFrom ? "linking..." : "Link"}
         </button>
 
         {!isRoot && (
           <button
             className="btn btn-danger btn-icon"
             onClick={handleDelete}
-            data-tooltip="Delete node and subtree"
+            data-tooltip="Delete node"
             style={{ marginLeft: "auto" }}
           >
-            ✕
+            <X size={12} />
           </button>
         )}
       </div>
@@ -201,13 +205,11 @@ export const LogicNodeTree = memo(function LogicNodeTree({
   isRoot = false,
 }: LogicNodeProps) {
   const node = useStore((s) => s.nodes[nodeId]);
-
   if (!node) return null;
 
   return (
     <div className="node-wrapper">
       <LogicNodeCard nodeId={nodeId} isRoot={isRoot} />
-
       {node.childIds.length > 0 && (
         <div className="node-children">
           {node.childIds.map((childId) => (
