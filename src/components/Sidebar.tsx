@@ -19,7 +19,7 @@ import type { LogicNode } from "../types";
 const TUTORIAL_NODES: Record<string, LogicNode> = {
   root: {
     id: "root",
-    condition: "User submits form",
+    condition: "User smashes the submit button",
     childIds: ["node_tut_1", "node_tut_2"],
     linkedToId: null,
     hasCycle: false,
@@ -28,7 +28,7 @@ const TUTORIAL_NODES: Record<string, LogicNode> = {
   },
   node_tut_1: {
     id: "node_tut_1",
-    condition: "Input is valid",
+    condition: "Miraculously, the input is valid",
     childIds: ["node_tut_3", "node_tut_4"],
     linkedToId: null,
     hasCycle: false,
@@ -37,7 +37,7 @@ const TUTORIAL_NODES: Record<string, LogicNode> = {
   },
   node_tut_2: {
     id: "node_tut_2",
-    condition: "Input has errors",
+    condition: "User messed something up (classic)",
     childIds: ["node_tut_5"],
     linkedToId: null,
     hasCycle: false,
@@ -46,7 +46,7 @@ const TUTORIAL_NODES: Record<string, LogicNode> = {
   },
   node_tut_3: {
     id: "node_tut_3",
-    condition: "User is authenticated",
+    condition: "User is actually logged in (rare W)",
     childIds: [],
     linkedToId: null,
     hasCycle: false,
@@ -55,7 +55,7 @@ const TUTORIAL_NODES: Record<string, LogicNode> = {
   },
   node_tut_4: {
     id: "node_tut_4",
-    condition: "User is a guest → redirect",
+    condition: "User is a guest → yeet them to login",
     childIds: [],
     linkedToId: null,
     hasCycle: false,
@@ -64,7 +64,7 @@ const TUTORIAL_NODES: Record<string, LogicNode> = {
   },
   node_tut_5: {
     id: "node_tut_5",
-    condition: "Show validation message",
+    condition: "Show error message nobody reads",
     childIds: [],
     linkedToId: null,
     hasCycle: false,
