@@ -1,73 +1,157 @@
-# React + TypeScript + Vite
+# Logic Flow Mapper
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A real-time recursive "If-Then" logic tree builder with cycle detection and DFS simulation.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Data Structure: Normalised Graph (Flat Map)
 
-## React Compiler
+This project uses a **normalised flat map** (`Record<NodeId, LogicNode>`) rather than a recursive/nested tree. Here's why:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Why Not Nested?
 
-## Expanding the ESLint configuration
+A nested structure (`{ id, children: [{ id, children: [...] }] }`) has real problems at scale:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Deep updates are expensive**: To update a node 10 levels deep, you need to reconstruct the entire path from root → clone every ancestor. Immer helps, but the cost is still O(depth).
+- **Graph operations are awkward**: Linking a node to another (cross-edge) requires either storing a reference or an ID — at that point you're basically doing normalisation anyway.
+- **Cycle detection requires full traversal from root** with no shortcut.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Why Normalised?
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+```ts
+interface GraphState {
+  nodes: Record<NodeId, LogicNode>; // flat map
+  rootId: NodeId;
+}
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+interface LogicNode {
+  id: NodeId;
+  condition: string;
+  childIds: NodeId[]; // structural children (tree edges)
+  linkedToId: NodeId | null; // cross-edge (can create cycles)
+  parentId: NodeId | null;
+  depth: number;
+  hasCycle: boolean;
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Benefits:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- **O(1) node lookup** by ID — no tree traversal needed.
+- **O(1) node update** — mutate one entry in the flat map.
+- **Clean graph semantics** — children + links are just ID references.
+- **Easy garbage collection** — deleting a subtree is just removing IDs from the map.
+- **Natural fit for Immer** — mutations stay local, no deep cloning needed.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## Cycle Detection: Depth-First Search (DFS)
+
+### The Algorithm
+
+Standard **DFS with three-color marking** (white/grey/black):
+
+```
+DETECT_CYCLES(nodes):
+  visiting = Set()   // grey: currently in DFS call stack
+  visited  = Set()   // black: fully processed
+  cycles   = Set()   // nodes involved in a cycle
+
+  for each node in nodes:
+    if node not in visited:
+      DFS(node, path=[])
+
+DFS(nodeId, path):
+  if nodeId in visiting:
+    → CYCLE FOUND
+    mark all nodes from cycle_start to end of path
+    return
+
+  if nodeId in visited:
+    → already processed, skip
+    return
+
+  visiting.add(nodeId)
+  path.push(nodeId)
+
+  for each neighbor (childIds + linkedToId):
+    DFS(neighbor, path.copy())
+
+  visiting.remove(nodeId)
+  visited.add(nodeId)
+```
+
+### Edge Types Considered
+
+| Edge Type   | Source       | Notes                                     |
+| ----------- | ------------ | ----------------------------------------- |
+| Tree edges  | `childIds`   | Structural parent→child                   |
+| Cross-edges | `linkedToId` | User-defined links — primary cycle source |
+
+### Complexity
+
+- **Time**: O(V + E) — each node and edge visited once
+- **Space**: O(V) — call stack + three sets
+
+### When Recomputed
+
+After **every mutation**:
+
+- Adding a child (`addChild`)
+- Deleting a node (`deleteNode`)
+- Creating or removing a link (`linkNode`)
+
+This keeps the UI in sync without stale state.
+
+---
+
+## Architecture
+
+```
+src/
+├── types/
+│   └── index.ts          # LogicNode, GraphState, SimulationState types
+├── utils/
+│   └── graph.ts          # DFS cycle detection, graph helpers, ID gen
+├── store/
+│   └── useStore.ts       # Zustand + Immer store — all graph mutations
+|   └── useTheme.ts       # Light/Dark Mode
+├── components/
+│   ├── Header.tsx         # Top bar with status
+│   ├── Sidebar.tsx        # Stats, simulation controls
+│   ├── LogicNode.tsx      # Recursive node card + tree rendering
+│   └── LinkNodeModal.tsx  # Modal for creating cross-edges
+├── styles/
+│   └── global.css        # Vanilla CSS with CSS variables
+├── App.tsx
+└── main.tsx
+```
+
+### State Management
+
+**Zustand + Immer** was chosen over `useReducer` + Context because:
+
+- Immer gives free structural sharing (only changed nodes are re-allocated)
+- Zustand's `(s) => s.nodes[id]` selectors ensure components only re-render when _their_ node changes
+- No Provider boilerplate
+
+### Performance
+
+- Each `LogicNodeCard` is wrapped in `React.memo` — only re-renders when its specific node slice changes
+- Components subscribe to `(s) => s.nodes[nodeId]` (single node), not the entire nodes map
+- `recomputeGraph` runs O(V+E) DFS after each mutation — acceptable since mutations are user-driven (not bulk)
+
+---
+
+## Running Locally
+
+```bash
+npm install
+npm run dev
+```
+
+Build:
+
+```bash
+npm run build
 ```
