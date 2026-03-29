@@ -1,18 +1,17 @@
-import { AlertTriangle, GitBranch, Link2 } from "lucide-react";
+import { AlertTriangle, Link2, Moon, Sun } from "lucide-react";
 import { useStore } from "../store/useStore";
+import { useTheme } from "../store/useTheme";
 
 export function Header() {
   const hasCycle = useStore((s) => s.hasCycle);
   const linkingFromId = useStore((s) => s.linkingFromId);
   const setLinkingFrom = useStore((s) => s.setLinkingFrom);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="header">
       <div className="header-brand">
-        <div className="header-logo">LF</div>
         <span className="header-title">Logic Flow Mapper</span>
-        <span className="header-sep"> / </span>
-        <span className="header-sub">if-then tree builder</span>
       </div>
 
       <div className="header-actions">
@@ -25,34 +24,35 @@ export function Header() {
             <span>click a node to link</span>
             <button
               className="btn btn-ghost btn-sm"
-              style={{ marginLeft: 4, padding: "1px 6px" }}
+              style={{
+                marginLeft: 4,
+                padding: "1px 6px",
+                color: "rgba(255,255,255,0.75)",
+                borderColor: "rgba(255,255,255,0.25)",
+              }}
               onClick={() => setLinkingFrom(null)}
             >
               cancel
             </button>
           </div>
         )}
+
         {hasCycle && !linkingFromId && (
           <div className="cycle-warning">
             <AlertTriangle size={11} />
             logic loop detected
           </div>
         )}
-        {!hasCycle && !linkingFromId && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              fontSize: 11,
-              fontFamily: "var(--mono)",
-              color: "var(--txt-3)",
-            }}
-          >
-            <GitBranch size={11} />
-            valid DAG
-          </div>
-        )}
+
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title={
+            theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+          }
+        >
+          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+        </button>
       </div>
     </header>
   );

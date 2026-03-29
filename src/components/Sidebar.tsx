@@ -1,18 +1,77 @@
 import {
   Activity,
   AlertTriangle,
+  BookOpen,
   CheckCircle,
   ChevronRight,
   FileJson,
   GitBranch,
-  Layers,
   PlayCircle,
   RotateCcw,
   Square,
   TrendingUp,
+  Zap,
 } from "lucide-react";
 import { exportGraphToJSON } from "../utils/graph";
 import { useStore } from "../store/useStore";
+import type { LogicNode } from "../types";
+
+const TUTORIAL_NODES: Record<string, LogicNode> = {
+  root: {
+    id: "root",
+    condition: "User submits form",
+    childIds: ["node_tut_1", "node_tut_2"],
+    linkedToId: null,
+    hasCycle: false,
+    depth: 0,
+    parentId: null,
+  },
+  node_tut_1: {
+    id: "node_tut_1",
+    condition: "Input is valid",
+    childIds: ["node_tut_3", "node_tut_4"],
+    linkedToId: null,
+    hasCycle: false,
+    depth: 1,
+    parentId: "root",
+  },
+  node_tut_2: {
+    id: "node_tut_2",
+    condition: "Input has errors",
+    childIds: ["node_tut_5"],
+    linkedToId: null,
+    hasCycle: false,
+    depth: 1,
+    parentId: "root",
+  },
+  node_tut_3: {
+    id: "node_tut_3",
+    condition: "User is authenticated",
+    childIds: [],
+    linkedToId: null,
+    hasCycle: false,
+    depth: 2,
+    parentId: "node_tut_1",
+  },
+  node_tut_4: {
+    id: "node_tut_4",
+    condition: "User is a guest → redirect",
+    childIds: [],
+    linkedToId: null,
+    hasCycle: false,
+    depth: 2,
+    parentId: "node_tut_1",
+  },
+  node_tut_5: {
+    id: "node_tut_5",
+    condition: "Show validation message",
+    childIds: [],
+    linkedToId: null,
+    hasCycle: false,
+    depth: 2,
+    parentId: "node_tut_2",
+  },
+};
 
 export function Sidebar() {
   const nodes = useStore((s) => s.nodes);
@@ -22,6 +81,18 @@ export function Sidebar() {
   const runSimulation = useStore((s) => s.runSimulation);
   const stopSimulation = useStore((s) => s.stopSimulation);
   const resetGraph = useStore((s) => s.resetGraph);
+
+  const loadTutorial = () => {
+    useStore.setState({
+      nodes: TUTORIAL_NODES,
+      rootId: "root",
+      cycleNodeIds: new Set<string>(),
+      hasCycle: false,
+      selectedNodeId: null,
+      linkingFromId: null,
+      simulation: { status: "idle", visitedPath: [], currentNodeId: null },
+    });
+  };
 
   const totalNodes = Object.keys(nodes).length;
   const totalEdges = Object.values(nodes).reduce(
@@ -47,7 +118,7 @@ export function Sidebar() {
       {/* ── Status ── */}
       <div className="sidebar-section">
         <div className="sidebar-label">
-          <Activity size={10} style={{ display: "inline", marginRight: 5 }} />
+          <Activity size={10} />
           Status
         </div>
         {hasCycle ? (
@@ -67,7 +138,7 @@ export function Sidebar() {
       {/* ── Graph Stats ── */}
       <div className="sidebar-section">
         <div className="sidebar-label">
-          <GitBranch size={10} style={{ display: "inline", marginRight: 5 }} />
+          <GitBranch size={10} />
           Graph
         </div>
         <div className="stat-grid">
@@ -101,7 +172,7 @@ export function Sidebar() {
       {/* ── Simulation ── */}
       <div className="sidebar-section">
         <div className="sidebar-label">
-          <TrendingUp size={10} style={{ display: "inline", marginRight: 5 }} />
+          <TrendingUp size={10} />
           Simulation
         </div>
 
@@ -132,7 +203,7 @@ export function Sidebar() {
               </>
             ) : (
               <>
-                <PlayCircle size={11} /> run DFS
+                <PlayCircle size={11} /> Simulate
               </>
             )}
           </button>
@@ -177,46 +248,61 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* ── Reference ── */}
-      <div className="sidebar-section" style={{ flex: 1 }}>
+      {/* ── Tutorial ── */}
+      <div className="sidebar-section">
         <div className="sidebar-label">
-          <Layers size={10} style={{ display: "inline", marginRight: 5 }} />
-          Reference
+          <BookOpen size={10} />
+          Try This
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {[
-            ["+ Child", "add nested condition"],
-            ["⇢ Link", "cross-link to existing node"],
-            ["✕", "delete node + children"],
-            ["▶ run DFS", "animate traversal"],
-          ].map(([cmd, desc]) => (
-            <div
-              key={cmd}
-              style={{ display: "flex", gap: 8, alignItems: "baseline" }}
-            >
-              <code
-                style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 10,
-                  background: "var(--bg-3)",
-                  border: "1px solid var(--line)",
-                  padding: "1px 5px",
-                  borderRadius: 2,
-                  color: "var(--txt-2)",
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                }}
-              >
-                {cmd}
-              </code>
-              <span
-                style={{ fontSize: 11, color: "var(--txt-3)", lineHeight: 1.5 }}
-              >
-                {desc}
-              </span>
+
+        <div className="tutorial-card">
+          <div className="tutorial-card-header">
+            <Zap size={11} color="#fff" />
+            <span className="tutorial-card-title">Form Validation Flow</span>
+          </div>
+          <div className="tutorial-steps">
+            <div className="tutorial-step">
+              <div className="tutorial-step-num">1</div>
+              <div className="tutorial-step-text">
+                Click <strong>Load Example</strong> to fill the canvas with a
+                real if-then scenario.
+              </div>
             </div>
-          ))}
+            <div className="tutorial-step">
+              <div className="tutorial-step-num">2</div>
+              <div className="tutorial-step-text">
+                Click any node to <strong>select</strong> it and edit its
+                condition inline.
+              </div>
+            </div>
+            <div className="tutorial-step">
+              <div className="tutorial-step-num">3</div>
+              <div className="tutorial-step-text">
+                Press <strong>+ Child</strong> to branch logic deeper from any
+                node.
+              </div>
+            </div>
+            <div className="tutorial-step">
+              <div className="tutorial-step-num">4</div>
+              <div className="tutorial-step-text">
+                Use <strong>⇢ Link</strong> to cross-connect nodes — try linking
+                a child back to root to trigger the cycle detector.
+              </div>
+            </div>
+            <div className="tutorial-step">
+              <div className="tutorial-step-num">5</div>
+              <div className="tutorial-step-text">
+                Hit <strong>Simulate</strong> above to animate the traversal
+                path.
+              </div>
+            </div>
+          </div>
         </div>
+
+        <button className="btn tutorial-load-btn" onClick={loadTutorial}>
+          <Zap size={11} />
+          Load Example
+        </button>
       </div>
 
       {/* ── Actions ── */}
