@@ -1,4 +1,4 @@
-import { AlertTriangle, Link2, Moon, Sun } from "lucide-react";
+import { AlertTriangle, Link2 } from "lucide-react";
 import { useStore } from "../store/useStore";
 import { useTheme } from "../store/useTheme";
 
@@ -45,13 +45,28 @@ export function Header() {
         )}
 
         <button
-          className="theme-toggle"
+          className="theme-toggle-pill"
           onClick={toggleTheme}
           title={
             theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
           }
+          aria-label="Toggle theme"
         >
-          {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+          <span
+            className={`pill-label${theme === "light" ? " pill-label--active" : ""}`}
+          >
+            Light
+          </span>
+          <span className="pill-track">
+            <span
+              className={`pill-thumb${theme === "dark" ? " pill-thumb--right" : ""}`}
+            />
+          </span>
+          <span
+            className={`pill-label${theme === "dark" ? " pill-label--active" : ""}`}
+          >
+            Dark
+          </span>
         </button>
       </div>
     </header>
